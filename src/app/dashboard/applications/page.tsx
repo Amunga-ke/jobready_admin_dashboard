@@ -90,6 +90,7 @@ export default function ApplicationsPage() {
 
     try {
       const res = await fetch(`/api/admin/applications?${params}`);
+      if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setApplications(data.applications || []);
       setTotal(data.total || 0);

@@ -40,7 +40,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       if (slugExists) return NextResponse.json({ error: "An update with this slug already exists" }, { status: 409 });
     }
 
-    const update = await db.jobUpdate.update({ where: { id }, data: body });
+    const allowed = ["title", "slug", "body", "source", "updateType", "pdfUrl", "imageUrl", "listingSlug", "postedBy", "status"];
+    const data: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (body[key] !== undefined) data[key] = body[key];
+    }
+
+    const update = await db.jobUpdate.update({ where: { id }, data });
     return NextResponse.json(update);
   } catch (error) {
     console.error("Update update error:", error);

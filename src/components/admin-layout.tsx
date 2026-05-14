@@ -27,7 +27,6 @@ import {
   Receipt,
   Tag,
   Settings,
-  MessageSquare,
   Newspaper,
   Megaphone,
   FolderTree,
@@ -76,7 +75,6 @@ const navigation = [
     section: "System",
     items: [
       { name: "Settings", href: "/dashboard/settings", icon: Settings },
-      { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
     ],
   },
 ];

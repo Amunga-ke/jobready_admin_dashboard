@@ -43,10 +43,10 @@ export async function GET(req: NextRequest) {
       db.listing.count({ where: { status: "ACTIVE" } }),
       db.listing.count({ where: { featured: true } }),
       db.application.count(),
-      db.payment.aggregate({ where: { status: "PAID" }, _sum: { amount: true } }),
+      db.payment.aggregate({ where: { status: "COMPLETED" }, _sum: { amount: true } }),
       db.payment.aggregate({
         where: {
-          status: "PAID",
+          status: "COMPLETED",
           paidAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
         },
         _sum: { amount: true },

@@ -63,9 +63,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
+    const allowed = ["name", "slug", "description", "priceMonthly", "priceYearly", "maxListings", "maxFeatured", "maxCvSearches", "maxTeamMembers", "maxMessagesPerDay", "isActive", "sortOrder", "features"];
+    const data: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (body[key] !== undefined) data[key] = body[key];
+    }
+
     const updated = await db.subscriptionPlan.update({
       where: { id },
-      data: body,
+      data,
     });
 
     return NextResponse.json(updated);

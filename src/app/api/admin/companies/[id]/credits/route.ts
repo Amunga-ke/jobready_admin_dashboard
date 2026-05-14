@@ -33,6 +33,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const newBalance = credit.balance + amount;
 
+    if (newBalance < 0) {
+      return NextResponse.json({ error: "Balance cannot go negative" }, { status: 400 });
+    }
+
     await db.$transaction([
       db.jobCredit.update({
         where: { companyId: id },

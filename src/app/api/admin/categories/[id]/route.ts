@@ -21,7 +21,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       if (slugExists) return NextResponse.json({ error: "A category with this slug already exists" }, { status: 409 });
     }
 
-    const category = await db.category.update({ where: { id }, data: body });
+    const allowed = ["name", "slug", "icon", "sortOrder", "active"];
+    const data: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (body[key] !== undefined) data[key] = body[key];
+    }
+
+    const category = await db.category.update({ where: { id }, data });
     return NextResponse.json(category);
   } catch (error) {
     console.error("Category update error:", error);

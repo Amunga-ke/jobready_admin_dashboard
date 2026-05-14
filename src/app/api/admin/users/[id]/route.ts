@@ -13,6 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const user = await db.user.findUnique({
       where: { id },
+      omit: { passwordHash: true },
       include: {
         employerProfile: {
           include: {
@@ -51,6 +52,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const { id } = await params;
     const body = await req.json();
+
+    // Self-demotion protection: prevent admin from changing their own role or active status
+    if (id === (session.user as { id?: string }).id) {
+      if ("role" in body || "isActive" in body) {
+        return NextResponse.json({ error: "Cannot modify your own role or active status" }, { status: 403 });
+      }
+    }
 
     const allowed = ["name", "role", "isActive", "emailVerified"];
     const data: Record<string, unknown> = {};
