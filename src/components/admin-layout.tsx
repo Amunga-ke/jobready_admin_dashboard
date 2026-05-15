@@ -38,6 +38,9 @@ import {
   ClipboardCheck,
   Brain,
   Bell,
+  Share2,
+  Link2,
+  Send,
 } from "lucide-react";
 
 const navigation = [
@@ -81,6 +84,14 @@ const navigation = [
       { name: "Job Updates", href: "/dashboard/updates", icon: Megaphone },
       { name: "Categories", href: "/dashboard/categories", icon: FolderTree },
       { name: "Tags", href: "/dashboard/tags", icon: Tag },
+    ],
+  },
+  {
+    section: "Social Media",
+    items: [
+      { name: "Connected Accounts", href: "/dashboard/social", icon: Share2 },
+      { name: "Post History", href: "/dashboard/social/posts", icon: Link2 },
+      { name: "Post a Job", href: "/dashboard/social/post-job", icon: Send },
     ],
   },
   {
