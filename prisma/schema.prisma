@@ -102,8 +102,14 @@ model User {
   teamMemberships  TeamMember[]
   sentMessages     Message[]             @relation("UserSent")
   receivedMessages Message[]             @relation("UserReceived")
-  notifications    Notification[]
-  payments         Payment[]
+  notifications        Notification[]
+  payments             Payment[]
+  seekerSubscriptions  SeekerSubscription[]
+  smsLogs              SmsLog[]
+  emailLogs            EmailLog[]
+  cvMatchScores        CvMatchScore[]
+  skillTestResults     SkillTestResult[]
+  salarySubmissions    SalarySubmission[]
 }
 
 // ─── Subscription Plans ───
@@ -367,11 +373,14 @@ model Listing {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  tags           ListingTag[]
-  savedJobs      SavedJob[]
-  applications   Application[]
-  featuredBoosts FeaturedBoost[]
-  messages       Message[]
+  tags             ListingTag[]
+  savedJobs        SavedJob[]
+  applications     Application[]
+  featuredBoosts   FeaturedBoost[]
+  messages         Message[]
+  cvMatchScores    CvMatchScore[]
+  listingTests     ListingTest[]
+  skillTestResults SkillTestResult[]
 }
 
 // ─── ListingTag ───
@@ -475,4 +484,187 @@ model Article {
   publishedAt DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// ─── Premium Feature Models ───
+
+model SeekerSubscription {
+  id              String   @id @default(cuid()) @db.VarChar(64)
+  userId          String   @unique @db.VarChar(64)
+  plan            String   @default("FREE") @db.VarChar(20)
+  status          String   @default("ACTIVE") @db.VarChar(20)
+  mpesaRef        String?  @db.VarChar(191)
+  amount          Int      @default(0)
+  currency        String   @default("KES") @db.VarChar(10)
+  paymentMethod   String?  @db.VarChar(30)
+  currentPeriodStart DateTime @default(now())
+  currentPeriodEnd   DateTime
+  features        String   @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SmsLog {
+  id          String   @id @default(cuid()) @db.VarChar(64)
+  userId      String?  @db.VarChar(64)
+  phone       String   @db.VarChar(20)
+  message     String   @db.Text
+  senderId    String   @default("TALK-SASA") @db.VarChar(50)
+  status      String   @default("PENDING") @db.VarChar(20)
+  providerRef String?  @db.VarChar(191)
+  cost        Float?   @db.Double
+  type        String   @default("JOB_ALERT") @db.VarChar(30)
+  metadata    String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([phone])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model EmailLog {
+  id          String   @id @default(cuid()) @db.VarChar(64)
+  userId      String?  @db.VarChar(64)
+  to          String   @db.VarChar(191)
+  subject     String   @db.VarChar(500)
+  status      String   @default("PENDING") @db.VarChar(20)
+  template    String?  @db.VarChar(100)
+  metadata    String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([to])
+  @@index([status])
+}
+
+model CvMatchScore {
+  id              String   @id @default(cuid()) @db.VarChar(64)
+  userId          String   @db.VarChar(64)
+  listingId       String   @db.VarChar(64)
+  applicationId   String?  @db.VarChar(64)
+  score           Int
+  breakdown       String   @db.Text
+  aiAnalysis      String?  @db.Text
+  modelUsed       String   @default("glm-4") @db.VarChar(50)
+  createdAt       DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([listingId])
+  @@index([score])
+}
+
+model SkillTest {
+  id              String   @id @default(cuid()) @db.VarChar(64)
+  title           String   @db.VarChar(300)
+  description     String?  @db.Text
+  category        String   @default("GENERAL") @db.VarChar(50)
+  durationMinutes Int      @default(15)
+  passingScore    Int      @default(60)
+  questionCount   Int      @default(10)
+  isActive        Boolean  @default(true)
+  pricePerCandidate Int    @default(50)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  questions SkillTestQuestion[]
+  listings  ListingTest[]
+  results   SkillTestResult[]
+}
+
+model SkillTestQuestion {
+  id          String   @id @default(cuid()) @db.VarChar(64)
+  testId      String   @db.VarChar(64)
+  question    String   @db.Text
+  questionType String  @default("MULTIPLE_CHOICE") @db.VarChar(30)
+  options     String   @db.Text
+  correctAnswer String @db.VarChar(500)
+  explanation String?  @db.Text
+  sortOrder   Int      @default(0)
+  points      Int      @default(1)
+  createdAt   DateTime @default(now())
+
+  test SkillTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@index([testId])
+}
+
+model ListingTest {
+  id          String   @id @default(cuid()) @db.VarChar(64)
+  listingId   String   @db.VarChar(64)
+  testId      String   @db.VarChar(64)
+  isRequired  Boolean  @default(true)
+  minScore    Int      @default(60)
+  createdAt   DateTime @default(now())
+
+  listing Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  test    SkillTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, testId])
+  @@index([listingId])
+  @@index([testId])
+}
+
+model SkillTestResult {
+  id              String   @id @default(cuid()) @db.VarChar(64)
+  testId          String   @db.VarChar(64)
+  userId          String   @db.VarChar(64)
+  listingId       String?  @db.VarChar(64)
+  applicationId   String?  @db.VarChar(64)
+  score           Int
+  totalPoints     Int      @default(0)
+  maxPoints       Int      @default(0)
+  answers         String   @db.Text
+  timeTakenSeconds Int     @default(0)
+  status          String   @default("COMPLETED") @db.VarChar(20)
+  passed          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  test        SkillTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing     Listing?  @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  @@index([testId])
+  @@index([userId])
+  @@index([listingId])
+  @@index([applicationId])
+  @@unique([userId, testId, listingId])
+}
+
+model SalarySubmission {
+  id              String   @id @default(cuid()) @db.VarChar(64)
+  userId          String?  @db.VarChar(64)
+  jobTitle        String   @db.VarChar(300)
+  company         String?  @db.VarChar(300)
+  industry        String?  @db.VarChar(100)
+  county          String?  @db.VarChar(100)
+  employmentType  String   @default("Full-time") @db.VarChar(20)
+  experienceLevel String   @default("Mid-level") @db.VarChar(20)
+  salaryAmount    Int
+  salaryPeriod    String   @default("MONTHLY") @db.VarChar(20)
+  currency        String   @default("KES") @db.VarChar(10)
+  benefits        String?  @db.Text
+  isVerified      Boolean  @default(false)
+  source          String   @default("USER_SUBMISSION") @db.VarChar(30)
+  createdAt       DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([jobTitle])
+  @@index([industry])
+  @@index([county])
+  @@index([experienceLevel])
+  @@index([employmentType])
+  @@index([salaryAmount])
+  @@index([createdAt])
 }

@@ -35,6 +35,9 @@ import {
   ChevronLeft,
   Menu,
   ShieldCheck,
+  ClipboardCheck,
+  Brain,
+  Bell,
 } from "lucide-react";
 
 const navigation = [
@@ -60,6 +63,15 @@ const navigation = [
       { name: "Subscriptions", href: "/dashboard/subscriptions", icon: CreditCard },
       { name: "Payments", href: "/dashboard/payments", icon: Receipt },
       { name: "Plans", href: "/dashboard/plans", icon: Layers },
+    ],
+  },
+  {
+    section: "Premium",
+    items: [
+      { name: "Skills Tests", href: "/dashboard/skill-tests", icon: ClipboardCheck },
+      { name: "Salary Data", href: "/dashboard/salary", icon: BarChart3 },
+      { name: "CV Matching", href: "/dashboard/cv-matching", icon: Brain },
+      { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
     ],
   },
   {
