@@ -1,53 +1,16 @@
-datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
-}
+// ─── JobReady Database Schema ───
+// Provider: mysql (production via Vercel)
 
 generator client {
   provider = "prisma-client-js"
 }
 
-// ─── Dashboard-Specific Models ───
-
-model EmployerProfile {
-  id         String   @id @default(cuid()) @db.VarChar(64)
-  userId     String   @unique @db.VarChar(64)
-  companyId  String   @db.VarChar(64)
-  role       String   @default("ADMIN") @db.VarChar(30)
-  isVerified Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
-model TeamMember {
-  id        String   @id @default(cuid()) @db.VarChar(64)
-  companyId String   @db.VarChar(64)
-  userId    String   @db.VarChar(64)
-  role      String   @default("MEMBER") @db.VarChar(20)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([companyId, userId])
-}
-
-model EmployerSettings {
-  id          String   @id @default(cuid()) @db.VarChar(64)
-  userId      String   @unique @db.VarChar(64)
-  preferences String   @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-// ─── Company ───
+// ─── Companies / Employers ───
 
 model Company {
   id          String    @id @default(cuid()) @db.VarChar(64)
@@ -65,280 +28,10 @@ model Company {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  listings            Listing[]
-  employerProfiles    EmployerProfile[]
-  teamMembers         TeamMember[]
-  subscriptions       CompanySubscription[]
-  jobCredit           JobCredit?
-  payments            Payment[]
-  featuredBoosts      FeaturedBoost[]
-  sentMessages        Message[]            @relation("CompanySent")
-  receivedMessages    Message[]            @relation("CompanyReceived")
-  socialAccounts      SocialAccount[]
+  listings Listing[]
 }
 
-// ─── User ───
-
-model User {
-  id            String    @id @default(cuid()) @db.VarChar(64)
-  email         String    @unique @db.VarChar(191)
-  passwordHash  String    @db.VarChar(255)
-  name          String    @default("") @db.VarChar(191)
-  phone         String?   @db.VarChar(20)
-  county        String?   @db.VarChar(100)
-  bio           String?   @db.Text
-  cvUrl         String?   @db.VarChar(500)
-  avatarUrl     String?   @db.VarChar(500)
-  role          String    @default("SEEKER") @db.VarChar(20)
-  resetToken     String?   @db.VarChar(255)
-  resetTokenExpiry DateTime?
-  emailVerified Boolean   @default(false)
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  applications     Application[]
-  savedJobs        SavedJob[]
-  jobAlerts        JobAlert[]
-  employerProfile  EmployerProfile?
-  employerSettings EmployerSettings?
-  teamMemberships  TeamMember[]
-  sentMessages     Message[]             @relation("UserSent")
-  receivedMessages Message[]             @relation("UserReceived")
-  notifications        Notification[]
-  payments             Payment[]
-  seekerSubscriptions  SeekerSubscription[]
-  smsLogs              SmsLog[]
-  emailLogs            EmailLog[]
-  cvMatchScores        CvMatchScore[]
-  skillTestResults     SkillTestResult[]
-  salarySubmissions    SalarySubmission[]
-  socialAccounts        SocialAccount[]
-  cvData               CVData?
-}
-
-// ─── CV Data (parsed CV storage) ───
-
-model CVData {
-  id              String   @id @default(cuid()) @db.VarChar(64)
-  userId          String   @unique @db.VarChar(64)
-  rawText         String   @db.LongText
-  phone           String?  @db.VarChar(30)
-  email           String?  @db.VarChar(191)
-  location        String?  @db.VarChar(300)
-  linkedin        String?  @db.VarChar(500)
-  portfolio       String?  @db.VarChar(500)
-  summary         String?  @db.Text
-  skills          String?  @db.Text
-  strengths       String?  @db.Text
-  experience      String?  @db.Text
-  projects        String?  @db.Text
-  education       String?  @db.Text
-  certifications  String?  @db.Text
-  awards          String?  @db.Text
-  research        String?  @db.Text
-  volunteering    String?  @db.Text
-  languages       String?  @db.Text
-  interests       String?  @db.Text
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-// ─── Newsletter Subscription ───
-
-model NewsletterSubscription {
-  id              String    @id @default(cuid()) @db.VarChar(64)
-  email           String    @unique @db.VarChar(191)
-  source          String?   @db.VarChar(100)
-  isActive        Boolean   @default(true)
-  subscribedAt    DateTime  @default(now())
-  unsubscribedAt  DateTime?
-
-  @@index([isActive])
-  @@index([subscribedAt])
-}
-
-// ─── Subscription Plans ───
-
-model SubscriptionPlan {
-  id            String   @id @default(cuid()) @db.VarChar(64)
-  name          String   @unique @db.VarChar(50)
-  slug          String   @unique @db.VarChar(50)
-  description   String?  @db.Text
-  priceMonthly  Int      @default(0)
-  priceYearly   Int      @default(0)
-  currency      String   @default("KES") @db.VarChar(10)
-  maxListings   Int      @default(3)
-  maxFeatured   Int      @default(0)
-  maxCvSearches Int      @default(0)
-  maxTeamMembers Int     @default(1)
-  maxMessagesPerDay Int  @default(10)
-  isActive      Boolean  @default(true)
-  sortOrder     Int      @default(0)
-  features      String   @db.Text // JSON array of feature strings
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  subscriptions CompanySubscription[]
-}
-
-// ─── Company Subscription ───
-
-model CompanySubscription {
-  id               String    @id @default(cuid()) @db.VarChar(64)
-  companyId        String    @db.VarChar(64)
-  planId           String    @db.VarChar(64)
-  status           String    @default("ACTIVE") @db.VarChar(20) // ACTIVE, CANCELLED, EXPIRED, TRIAL
-  billingCycle     String    @default("MONTHLY") @db.VarChar(20) // MONTHLY, YEARLY
-  currentPeriodStart DateTime @default(now())
-  currentPeriodEnd   DateTime
-  cancelledAt      DateTime?
-  trialEndsAt      DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  company Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  plan    SubscriptionPlan   @relation(fields: [planId], references: [id])
-  payments Payment[]
-
-  @@unique([companyId, planId])
-}
-
-// ─── Payment ───
-
-model Payment {
-  id              String    @id @default(cuid()) @db.VarChar(64)
-  subscriptionId  String?   @db.VarChar(64)
-  boostId         String?   @db.VarChar(64)
-  companyId       String    @db.VarChar(64)
-  userId          String    @db.VarChar(64)
-  amount          Int
-  currency        String    @default("KES") @db.VarChar(10)
-  status          String    @default("PENDING") @db.VarChar(20)
-  paymentMethod   String    @db.VarChar(30)
-  paymentRef      String?   @db.VarChar(191)
-  itemType        String    @db.VarChar(30)
-  itemId          String?   @db.VarChar(64)
-  description     String    @db.VarChar(500)
-  metadata        String?   @db.Text
-  paidAt          DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  subscription CompanySubscription? @relation(fields: [subscriptionId], references: [id])
-  company     Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user        User                @relation(fields: [userId], references: [id])
-  featuredBoost FeaturedBoost?    @relation(fields: [boostId], references: [id])
-
-  @@unique([boostId])
-  @@index([companyId, createdAt])
-  @@index([userId, createdAt])
-}
-
-// ─── Job Credits ───
-
-model JobCredit {
-  id              String   @id @default(cuid()) @db.VarChar(64)
-  companyId       String   @unique @db.VarChar(64)
-  balance         Int      @default(0) // Current available credits
-  totalPurchased  Int      @default(0) // Lifetime purchased
-  totalUsed       Int      @default(0) // Lifetime used
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  company     Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  transactions JobCreditTransaction[]
-}
-
-model JobCreditTransaction {
-  id          String   @id @default(cuid()) @db.VarChar(64)
-  creditId    String   @db.VarChar(64)
-  type        String   @db.VarChar(20) // PURCHASE, USAGE, REFUND, BONUS, ADMIN_ADJUST
-  amount      Int // Positive for purchase/refund/bonus, negative for usage
-  balanceAfter Int // Balance after this transaction
-  description String   @db.VarChar(500)
-  listingId   String?  @db.VarChar(64) // Listing ID if used for a job posting
-  paymentId   String?  @db.VarChar(64) // Payment ID if purchased
-  createdAt   DateTime @default(now())
-
-  credit  JobCredit @relation(fields: [creditId], references: [id], onDelete: Cascade)
-
-  @@index([creditId, createdAt])
-}
-
-// ─── Featured Listing Boost ───
-
-model FeaturedBoost {
-  id            String    @id @default(cuid()) @db.VarChar(64)
-  companyId     String    @db.VarChar(64)
-  listingId     String    @db.VarChar(64)
-  status        String    @default("PENDING") @db.VarChar(20)
-  startedAt     DateTime?
-  expiresAt     DateTime?
-  durationDays  Int      @default(7)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  payment Payment?
-
-  @@index([companyId, status])
-  @@index([listingId])
-}
-
-// ─── Messaging ───
-
-model Message {
-  id             String   @id @default(cuid()) @db.VarChar(64)
-  senderId       String   @db.VarChar(64) // User who sent
-  recipientId    String?  @db.VarChar(64) // User recipient (for applicant chat)
-  senderCompanyId String? @db.VarChar(64) // Company sender (if company sent)
-  recipientCompanyId String? @db.VarChar(64) // Company recipient
-  senderType     String   @db.VarChar(20) // USER, COMPANY
-  recipientType  String   @db.VarChar(20) // USER, COMPANY
-  subject        String?  @db.VarChar(300)
-  body           String   @db.Text
-  isRead         Boolean  @default(false)
-  parentId       String?  @db.VarChar(64) // For threaded replies
-  listingId      String?  @db.VarChar(64) // Related listing context
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  senderUser     User?              @relation("UserSent", fields: [senderId], references: [id], onDelete: Cascade)
-  recipientUser  User?              @relation("UserReceived", fields: [recipientId], references: [id], onDelete: SetNull)
-  senderCompany  Company?           @relation("CompanySent", fields: [senderCompanyId], references: [id], onDelete: Cascade)
-  recipientCompany Company?         @relation("CompanyReceived", fields: [recipientCompanyId], references: [id], onDelete: SetNull)
-  parent         Message?           @relation("MessageReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies        Message[]          @relation("MessageReplies")
-  listing        Listing?           @relation(fields: [listingId], references: [id], onDelete: SetNull)
-
-  @@index([senderId, createdAt])
-  @@index([recipientId, createdAt])
-  @@index([senderCompanyId, createdAt])
-}
-
-// ─── Notifications ───
-
-model Notification {
-  id        String   @id @default(cuid()) @db.VarChar(64)
-  userId    String   @db.VarChar(64)
-  type      String   @db.VarChar(50) // APPLICATION_RECEIVED, STATUS_CHANGED, SUBSCRIPTION_EXPIRING, etc.
-  title     String   @db.VarChar(300)
-  body      String?  @db.Text
-  link      String?  @db.VarChar(500)
-  isRead    Boolean  @default(false)
-  metadata  String?  @db.Text // JSON for extra data
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, isRead, createdAt])
-}
-
-// ─── Category ───
+// ─── Job Categories ───
 
 model Category {
   id        String        @id @default(cuid()) @db.VarChar(64)
@@ -352,7 +45,7 @@ model Category {
   listings      Listing[]
 }
 
-// ─── Subcategory ───
+// ─── Subcategories ───
 
 model Subcategory {
   id         String   @id @default(cuid()) @db.VarChar(64)
@@ -366,17 +59,18 @@ model Subcategory {
   listings Listing[]
 }
 
-// ─── County ───
+// ─── Counties ───
 
 model County {
-  id     String  @id @default(cuid()) @db.VarChar(64)
-  slug   String  @unique @db.VarChar(191)
-  name   String  @db.VarChar(100)
-  code   String? @db.VarChar(10)
-  active Boolean @default(true)
+  id        String   @id @default(cuid()) @db.VarChar(64)
+  slug      String   @unique @db.VarChar(191)
+  name      String   @db.VarChar(100)
+  code      String?  @db.VarChar(10)
+  active    Boolean  @default(true)
+
 }
 
-// ─── Tag ───
+// ─── Tags ───
 
 model Tag {
   id   String @id @default(cuid()) @db.VarChar(64)
@@ -385,117 +79,87 @@ model Tag {
   listings ListingTag[]
 }
 
-// ─── Listing ───
+// ─── Listings (Jobs / Government / Casual / Opportunities) ───
 
 model Listing {
   id              String       @id @default(cuid()) @db.VarChar(64)
   slug            String       @unique @db.VarChar(191)
   title           String       @db.VarChar(300)
   description     String       @default("") @db.Text
+
+  // Type
   listingType     String       @default("JOB") @db.VarChar(20)
   governmentLevel String?      @db.VarChar(30)
   opportunityType String?      @db.VarChar(30)
+
+  // Employer
   companyId       String       @db.VarChar(64)
   company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Classification
   categoryId      String?      @db.VarChar(64)
   category        Category?    @relation(fields: [categoryId], references: [id])
   subcategoryId   String?      @db.VarChar(64)
   subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id])
+
+  // Location
   town            String       @default("") @db.VarChar(191)
   county          String       @default("") @db.VarChar(100)
+
+  // Employment details
   employmentType  String       @default("Full-time") @db.VarChar(20)
   experienceLevel String       @default("Mid-level") @db.VarChar(20)
   workMode        String       @default("ONSITE") @db.VarChar(20)
+
+  // Salary
   salaryMin       Int?
   salaryMax       Int?
   salaryPeriod    String?      @db.VarChar(10)
-  predictedSalary String?      @db.VarChar(100)
+
+  // AI-predicted salary (shown when salary not disclosed)
+  predictedSalary  String?     @db.VarChar(100)
+
+  // Status & visibility
   status          String       @default("ACTIVE") @db.VarChar(20)
   featured        Boolean      @default(false)
+
+  // Application
   applicationUrl  String?      @db.VarChar(500)
   applyEmail      String?      @db.VarChar(191)
   applyCount      Int          @default(0)
+
+  // Metadata
   source          String?      @db.VarChar(191)
   viewCount       Int          @default(0)
+
+  // Dates
   deadline        DateTime?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  tags             ListingTag[]
-  savedJobs        SavedJob[]
-  applications     Application[]
-  featuredBoosts   FeaturedBoost[]
-  messages         Message[]
-  cvMatchScores    CvMatchScore[]
-  listingTests     ListingTest[]
-  skillTestResults SkillTestResult[]
-  socialPosts      SocialPost[]
+  // Relations
+  tags        ListingTag[]
+  savedJobs   SavedJob[]
+  applications Application[]
+
+  @@index([listingType])
+  @@index([categoryId])
+  @@index([county])
+  @@index([companyId])
+  @@index([status])
+  @@index([featured])
+  @@index([deadline])
+  @@index([createdAt])
+  @@index([governmentLevel])
+  @@index([opportunityType])
+  @@index([employmentType])
+  @@index([experienceLevel])
+  @@index([workMode])
+  @@index([listingType, status])
+  @@index([listingType, county])
 }
 
-// ─── ListingTag ───
-
-model ListingTag {
-  listingId String @db.VarChar(64)
-  tagId     String @db.VarChar(64)
-
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([listingId, tagId])
-}
-
-// ─── Application ───
-
-model Application {
-  id          String   @id @default(cuid()) @db.VarChar(64)
-  userId      String   @db.VarChar(64)
-  listingId   String   @db.VarChar(64)
-  status      String   @default("DRAFT") @db.VarChar(20)
-  coverLetter String?  @db.Text
-  cvUrl       String?  @db.VarChar(500)
-  notes       String?  @db.Text
-  score       Int?
-  appliedAt   DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, listingId])
-}
-
-// ─── SavedJob ───
-
-model SavedJob {
-  id        String   @id @default(cuid()) @db.VarChar(64)
-  userId    String   @db.VarChar(64)
-  listingId String   @db.VarChar(64)
-  note      String?  @db.Text
-  createdAt DateTime @default(now())
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, listingId])
-}
-
-// ─── JobAlert ───
-
-model JobAlert {
-  id            String    @id @default(cuid()) @db.VarChar(64)
-  userId        String    @db.VarChar(64)
-  name          String    @db.VarChar(191)
-  query         String    @db.Text
-  frequency     String    @default("DAILY") @db.VarChar(20)
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  lastTriggered DateTime?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-// ─── JobUpdate (kept to match main website) ───
+// ─── Job Updates (official announcements from ministries, employers) ───
 
 model JobUpdate {
   id          String   @id @default(cuid()) @db.VarChar(64)
@@ -511,9 +175,14 @@ model JobUpdate {
   status      String   @default("PUBLISHED") @db.VarChar(20)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([updateType])
+  @@index([status])
+  @@index([createdAt])
+  @@index([slug])
 }
 
-// ─── Article (kept to match main website) ───
+// ─── Articles (Career blog posts, guides, resources) ───
 
 model Article {
   id          String   @id @default(cuid()) @db.VarChar(64)
@@ -525,7 +194,7 @@ model Article {
   category    String   @default("Career Tips") @db.VarChar(100)
   tags        String?  @db.VarChar(500)
   author      String   @default("JobReady Team") @db.VarChar(191)
-  authorImage String? @db.VarChar(500)
+  authorImage String?  @db.VarChar(500)
   status      String   @default("PUBLISHED") @db.VarChar(20)
   featured    Boolean  @default(false)
   readTime    Int      @default(5)
@@ -533,249 +202,100 @@ model Article {
   publishedAt DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-}
 
-// ─── Premium Feature Models ───
-
-model SeekerSubscription {
-  id              String   @id @default(cuid()) @db.VarChar(64)
-  userId          String   @unique @db.VarChar(64)
-  plan            String   @default("FREE") @db.VarChar(20)
-  status          String   @default("ACTIVE") @db.VarChar(20)
-  mpesaRef        String?  @db.VarChar(191)
-  amount          Int      @default(0)
-  currency        String   @default("KES") @db.VarChar(10)
-  paymentMethod   String?  @db.VarChar(30)
-  currentPeriodStart DateTime @default(now())
-  currentPeriodEnd   DateTime
-  features        String   @db.Text
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model SmsLog {
-  id          String   @id @default(cuid()) @db.VarChar(64)
-  userId      String?  @db.VarChar(64)
-  phone       String   @db.VarChar(20)
-  message     String   @db.Text
-  senderId    String   @default("TALK-SASA") @db.VarChar(50)
-  status      String   @default("PENDING") @db.VarChar(20)
-  providerRef String?  @db.VarChar(191)
-  cost        Float?   @db.Double
-  type        String   @default("JOB_ALERT") @db.VarChar(30)
-  metadata    String?  @db.Text
-  createdAt   DateTime @default(now())
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([phone])
+  @@index([category])
   @@index([status])
-  @@index([createdAt])
+  @@index([publishedAt])
+  @@index([slug])
+  @@index([featured])
 }
 
-model EmailLog {
-  id          String   @id @default(cuid()) @db.VarChar(64)
-  userId      String?  @db.VarChar(64)
-  to          String   @db.VarChar(191)
-  subject     String   @db.VarChar(500)
-  status      String   @default("PENDING") @db.VarChar(20)
-  template    String?  @db.VarChar(100)
-  metadata    String?  @db.Text
-  createdAt   DateTime @default(now())
+// ─── Listing ↔ Tag junction ───
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+model ListingTag {
+  listingId String @db.VarChar(64)
+  tagId     String @db.VarChar(64)
 
-  @@index([userId])
-  @@index([to])
-  @@index([status])
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([listingId, tagId])
 }
 
-model CvMatchScore {
-  id              String   @id @default(cuid()) @db.VarChar(64)
-  userId          String   @db.VarChar(64)
-  listingId       String   @db.VarChar(64)
-  applicationId   String?  @db.VarChar(64)
-  score           Int
-  breakdown       String   @db.Text
-  aiAnalysis      String?  @db.Text
-  modelUsed       String   @default("glm-4") @db.VarChar(50)
-  createdAt       DateTime @default(now())
+// ─── Users ───
+
+model User {
+  id            String    @id @default(cuid()) @db.VarChar(64)
+  email         String    @unique @db.VarChar(191)
+  passwordHash  String    @db.VarChar(255)
+  name          String    @default("") @db.VarChar(191)
+  phone         String?   @db.VarChar(20)
+  county        String?   @db.VarChar(100)
+  bio           String?   @db.Text
+  cvUrl         String?   @db.VarChar(500)
+  avatarUrl     String?   @db.VarChar(500)
+  role          String    @default("SEEKER") @db.VarChar(20)
+  emailVerified Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  savedJobs     SavedJob[]
+  applications  Application[]
+  jobAlerts     JobAlert[]
+}
+
+// ─── Saved Jobs ───
+
+model SavedJob {
+  id        String   @id @default(cuid()) @db.VarChar(64)
+  userId    String   @db.VarChar(64)
+  listingId String   @db.VarChar(64)
+  note      String?  @db.Text
+  createdAt DateTime @default(now())
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   @@unique([userId, listingId])
-  @@index([listingId])
-  @@index([score])
-}
-
-model SkillTest {
-  id              String   @id @default(cuid()) @db.VarChar(64)
-  title           String   @db.VarChar(300)
-  description     String?  @db.Text
-  category        String   @default("GENERAL") @db.VarChar(50)
-  durationMinutes Int      @default(15)
-  passingScore    Int      @default(60)
-  questionCount   Int      @default(10)
-  isActive        Boolean  @default(true)
-  pricePerCandidate Int    @default(50)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  questions SkillTestQuestion[]
-  listings  ListingTest[]
-  results   SkillTestResult[]
-}
-
-model SkillTestQuestion {
-  id          String   @id @default(cuid()) @db.VarChar(64)
-  testId      String   @db.VarChar(64)
-  question    String   @db.Text
-  questionType String  @default("MULTIPLE_CHOICE") @db.VarChar(30)
-  options     String   @db.Text
-  correctAnswer String @db.VarChar(500)
-  explanation String?  @db.Text
-  sortOrder   Int      @default(0)
-  points      Int      @default(1)
-  createdAt   DateTime @default(now())
-
-  test SkillTest @relation(fields: [testId], references: [id], onDelete: Cascade)
-
-  @@index([testId])
-}
-
-model ListingTest {
-  id          String   @id @default(cuid()) @db.VarChar(64)
-  listingId   String   @db.VarChar(64)
-  testId      String   @db.VarChar(64)
-  isRequired  Boolean  @default(true)
-  minScore    Int      @default(60)
-  createdAt   DateTime @default(now())
-
-  listing Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  test    SkillTest @relation(fields: [testId], references: [id], onDelete: Cascade)
-
-  @@unique([listingId, testId])
-  @@index([listingId])
-  @@index([testId])
-}
-
-model SkillTestResult {
-  id              String   @id @default(cuid()) @db.VarChar(64)
-  testId          String   @db.VarChar(64)
-  userId          String   @db.VarChar(64)
-  listingId       String?  @db.VarChar(64)
-  applicationId   String?  @db.VarChar(64)
-  score           Int
-  totalPoints     Int      @default(0)
-  maxPoints       Int      @default(0)
-  answers         String   @db.Text
-  timeTakenSeconds Int     @default(0)
-  status          String   @default("COMPLETED") @db.VarChar(20)
-  passed          Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  completedAt     DateTime?
-
-  test        SkillTest @relation(fields: [testId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listing     Listing?  @relation(fields: [listingId], references: [id], onDelete: SetNull)
-
-  @@index([testId])
   @@index([userId])
   @@index([listingId])
-  @@index([applicationId])
-  @@unique([userId, testId, listingId])
 }
 
-// ─── Social Accounts ───
+// ─── Applications ───
 
-model SocialAccount {
-  id                String   @id @default(cuid()) @db.VarChar(64)
-  userId            String   @db.VarChar(64)
-  companyId         String?  @db.VarChar(64)
-  platform          String   @db.VarChar(30)
-  platformUserId    String?  @db.VarChar(191)
-  platformUsername  String?  @db.VarChar(191)
-  accessToken       String?  @db.Text
-  refreshToken      String?  @db.Text
-  tokenExpiresAt    DateTime?
-  pageId            String?  @db.VarChar(191)
-  pageName          String?  @db.VarChar(300)
-  pageAccessToken   String?  @db.Text
-  isActive          Boolean  @default(true)
-  autoPost          Boolean  @default(false)
-  autoPostJobTypes  String?  @db.Text
-  lastPostedAt      DateTime?
-  metadata          String?  @db.Text
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+model Application {
+  id          String   @id @default(cuid()) @db.VarChar(64)
+  userId      String   @db.VarChar(64)
+  listingId   String   @db.VarChar(64)
+  status      String   @default("DRAFT") @db.VarChar(20)
+  coverLetter String?  @db.Text
+  cvUrl       String?  @db.VarChar(500)
+  appliedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company    Company?     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  socialPosts SocialPost[]
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, platform, companyId])
-  @@index([platform])
-  @@index([companyId])
-  @@index([isActive])
-}
-
-// ─── Social Posts ───
-
-model SocialPost {
-  id              String   @id @default(cuid()) @db.VarChar(64)
-  accountId       String   @db.VarChar(64)
-  listingId       String?  @db.VarChar(64)
-  platform        String   @db.VarChar(30)
-  platformPostId  String?  @db.VarChar(191)
-  platformUrl     String?  @db.VarChar(500)
-  caption         String   @db.Text
-  posterUrl       String?  @db.VarChar(500)
-  status          String   @default("PENDING") @db.VarChar(20)
-  postType        String   @default("JOB_POSTER") @db.VarChar(30)
-  errorMessage    String?  @db.Text
-  metadata        String?  @db.Text
-  postedAt        DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  account SocialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  listing Listing?       @relation(fields: [listingId], references: [id], onDelete: SetNull)
-
-  @@index([accountId])
+  @@unique([userId, listingId])
+  @@index([userId])
   @@index([listingId])
-  @@index([platform])
   @@index([status])
-  @@index([createdAt])
 }
 
-model SalarySubmission {
-  id              String   @id @default(cuid()) @db.VarChar(64)
-  userId          String?  @db.VarChar(64)
-  jobTitle        String   @db.VarChar(300)
-  company         String?  @db.VarChar(300)
-  industry        String?  @db.VarChar(100)
-  county          String?  @db.VarChar(100)
-  employmentType  String   @default("Full-time") @db.VarChar(20)
-  experienceLevel String   @default("Mid-level") @db.VarChar(20)
-  salaryAmount    Int
-  salaryPeriod    String   @default("MONTHLY") @db.VarChar(20)
-  currency        String   @default("KES") @db.VarChar(10)
-  benefits        String?  @db.Text
-  isVerified      Boolean  @default(false)
-  source          String   @default("USER_SUBMISSION") @db.VarChar(30)
-  createdAt       DateTime @default(now())
+// ─── Job Alerts ───
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+model JobAlert {
+  id            String    @id @default(cuid()) @db.VarChar(64)
+  userId        String    @db.VarChar(64)
+  name          String    @db.VarChar(191)
+  query         String    @db.Text
+  frequency     String    @default("DAILY") @db.VarChar(20)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  lastTriggered DateTime?
 
-  @@index([jobTitle])
-  @@index([industry])
-  @@index([county])
-  @@index([experienceLevel])
-  @@index([employmentType])
-  @@index([salaryAmount])
-  @@index([createdAt])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
