@@ -33,9 +33,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetch("/api/admin/stats")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch");
+        return r.json();
+      })
       .then((data) => { setStats(data); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch((err) => { console.error("Stats fetch error:", err); setLoading(false); });
   }, []);
 
   const statusColor = (status: string) => {
@@ -69,8 +72,8 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Users</p>
-                    <p className="text-2xl font-bold">{stats.totalUsers.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{stats.totalSeekers} seekers · {stats.totalEmployers} employers</p>
+                    <p className="text-2xl font-bold">{(stats.totalUsers ?? 0).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{stats.totalSeekers ?? 0} seekers · {stats.totalEmployers ?? 0} employers</p>
                   </div>
                   <div className="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center">
                     <Users className="h-5 w-5 text-indigo-600" />
@@ -83,8 +86,8 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Active Listings</p>
-                    <p className="text-2xl font-bold">{stats.activeListings.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{stats.totalListings} total</p>
+                    <p className="text-2xl font-bold">{(stats.activeListings ?? 0).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{stats.totalListings ?? 0} total</p>
                   </div>
                   <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
                     <Briefcase className="h-5 w-5 text-green-600" />
@@ -97,7 +100,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Applications</p>
-                    <p className="text-2xl font-bold">{stats.totalApplications.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{(stats.totalApplications ?? 0).toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground mt-1">All time</p>
                   </div>
                   <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -111,8 +114,8 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Revenue (This Month)</p>
-                    <p className="text-2xl font-bold">{formatKES(stats.monthlyRevenue)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Total: {formatKES(stats.totalRevenue)}</p>
+                    <p className="text-2xl font-bold">{formatKES(stats.monthlyRevenue ?? 0)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Total: {formatKES(stats.totalRevenue ?? 0)}</p>
                   </div>
                   <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
                     <CreditCard className="h-5 w-5 text-amber-600" />
